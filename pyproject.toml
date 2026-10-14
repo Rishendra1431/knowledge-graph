@@ -3,7 +3,13 @@ name = "knowledge-graph-threat-detection"
 version = "1.0.0"
 description = "Explainable knowledge graph-based cyber threat detection prototype"
 requires-python = ">=3.10,<3.13"
-dependencies = [
+# The Vercel entrypoint uses only Python's standard library. Keeping the
+# serverless dependency set empty prevents the optional research dashboard
+# stack from being bundled into every deployed function.
+dependencies = []
+
+[project.optional-dependencies]
+dashboard = [
   "pandas>=2.0,<3.0",
   "numpy>=1.24,<3.0",
   "scikit-learn>=1.3,<2.0",
