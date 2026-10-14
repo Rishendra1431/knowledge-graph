@@ -1,0 +1,17 @@
+# Put the CICIDS2017 MachineLearningCSV files here.
+#
+#   Monday-WorkingHours.pcap_ISCX.csv
+#   Tuesday-WorkingHours.pcap_ISCX.csv
+#   Wednesday-workingHours.pcap_ISCX.csv
+#   Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv
+#   Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv
+#   Friday-WorkingHours-Morning.pcap_ISCX.csv
+#   Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv
+#   Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv
+#
+# Source and terms: https://www.unb.ca/cic/datasets/ids-2017.html
+# See docs/DATASET.md. Subdirectories are searched recursively.
+#
+# If this directory is empty the pipeline generates a SYNTHETIC dataset so it stays
+# runnable, and flags every artifact as synthetic. Never report those numbers as
+# detection performance.

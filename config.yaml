@@ -1,0 +1,120 @@
+# ---------------------------------------------------------------------------
+# Configuration for the Explainable KG-Based Cyber Threat Detection prototype.
+# Every value here has a default in src/config.py, so deleting this file still
+# produces a runnable project.
+# ---------------------------------------------------------------------------
+
+seed: 42
+
+dataset:
+  name: "CICIDS2017"
+  # Where the raw CSVs live / are downloaded to.
+  raw_dir: "data/raw"
+  # Prototype scale. The full CICIDS2017 MachineLearningCSV set is ~2.8M flows;
+  # a prototype keeps this small enough to run on a laptop. Set to 0 (or null)
+  # to use every row - expect long runtimes and multi-GB RAM.
+  max_rows_per_file: 25000
+  # Deterministic row sampling when max_rows_per_file is exceeded.
+  sample_strategy: "head"          # head | random
+  # If no CSV is found in raw_dir, generate a documented synthetic dataset so
+  # the pipeline is always runnable. Results are then flagged is_synthetic=true
+  # and must NOT be presented as findings about real traffic.
+  allow_synthetic_fallback: true
+  synthetic_rows: 60000
+  # Optional download sources, tried in order when raw_dir is empty.
+  download_urls: []
+  download_timeout_seconds: 60
+
+preprocess:
+  label_column: "Label"
+  benign_label: "BENIGN"
+  timestamp_column: "Timestamp"
+  # Columns that identify a flow/record rather than describe it.
+  drop_columns: ["Flow ID", "Fwd Header Length.1"]
+  # Entity columns kept for graph construction but excluded from model features.
+  entity_columns: ["Source IP", "Destination IP", "Source Port", "Destination Port", "Protocol"]
+  target_column: "is_attack"
+  # Data-cleaning switches
+  replace_infinite: true
+  drop_constant_features: true
+  variance_threshold: 0.0
+  clip_outliers: true
+  clip_quantiles: [0.001, 0.999]
+  max_missing_fraction: 0.5         # drop a feature column above this NaN share (train)
+  one_hot_max_cardinality: 12       # one-hot encode categoricals up to this many levels
+  # Split strategy: temporal | group | random   (see docs/LIMITATIONS.md)
+  split_strategy: "temporal"
+  test_size: 0.3
+  temporal:
+    # Day-based holdout: train on these days, test on the rest.
+    train_days: ["Monday", "Tuesday", "Wednesday", "Thursday"]
+    test_days: ["Friday"]
+  group:
+    # Group key prevents the same conversation appearing in both splits.
+    key_columns: ["Source IP", "Destination IP"]
+
+graph:
+  # structural scope of the label-free entity graph used for features:
+  #   full       -> one transductive graph over all evaluated events (labels never used)
+  #   train_only -> inductive: graph built from training events only
+  structural_scope: "full"
+  # Whether to materialise one node per flow event (SecurityEvent entities).
+  include_event_nodes: true
+  max_event_nodes: 250000
+  # Confidence kernel K for derived (aggregated) edges:
+  #   confidence = 1 - exp(-evidence_count / K)
+  derived_confidence_k: 10.0
+  # Nearest-threat-intel search depth for the path features / explanations.
+  max_hops_to_intel: 4
+  # Cap on how many test-event pairs get exact common-neighbour computation.
+  max_common_neighbor_pairs: 200000
+  # Deterministic community detection (seeded Louvain when available).
+  community_detection: true
+  # Persist a degree-ranked subgraph for the dashboard / graph visualisation.
+  persist_subgraph_nodes: 2000
+  # Export the complete graph as GraphML (can be very large with event nodes).
+  export_graphml: false
+
+model:
+  n_estimators: 200
+  max_depth: null
+  min_samples_leaf: 2
+  class_weight: "balanced"
+  n_jobs: -1
+  decision_threshold: 0.5
+
+evaluation:
+  # Repeated runs give mean/std instead of a single lucky number.
+  n_runs: 3
+  bootstrap_samples: 1000
+  bootstrap_confidence: 0.95
+  mcnemar_alpha: 0.05
+  inference_batch_size: 2048
+  save_predictions: true
+  # Run the strict inductive graph variant as a leakage-sensitivity experiment.
+  run_leakage_sensitivity: true
+
+resources:
+  sample_interval_seconds: 0.1
+  use_tracemalloc: true
+
+explain:
+  top_k_features: 6
+  n_alerts: 25
+  method: "auto"                    # auto | shap | importance_approximation
+  shap_max_samples: 200
+
+dashboard:
+  results_path: "results/metrics.json"
+  max_graph_nodes: 120
+  max_alerts_shown: 100
+
+paths:
+  results_dir: "results"
+  figures_dir: "results/figures"
+  predictions_dir: "results/predictions"
+  reports_dir: "results/reports"
+  models_dir: "models"
+  logs_dir: "logs"
+  interim_dir: "data/interim"
+  processed_dir: "data/processed"

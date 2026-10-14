@@ -1,0 +1,21 @@
+# Generated result artifacts land here.
+#
+# Nothing in this directory is committed. Every file is produced by:
+#     python run_all.py
+#
+# Expected contents after a successful run:
+#   metrics.json                     all measured values + validation verdict
+#   metrics_headline.csv             long format (model, metric, value)
+#   comparison_table.csv             baseline vs graph-aware, with differences
+#   alerts.csv / alerts.json         explained alerts
+#   resources.csv                    per-run CPU/RAM/runtime/throughput
+#   feature_importance.csv
+#   leakage_audit.json
+#   knowledge_graph_subgraph.json
+#   predictions/test_predictions.npz raw predictions for independent verification
+#   reports/results_for_paper.md     filled paper template
+#   reports/comparison_table.md
+#   reports/resource_evaluation.md
+#
+# If a stage fails, metrics.json records status=partial/failed and the values for
+# that stage are null. No file here contains an estimate presented as a measurement.
