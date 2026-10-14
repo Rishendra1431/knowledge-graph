@@ -153,6 +153,7 @@ def parse_timestamps(df: pd.DataFrame, settings: Settings) -> tuple[pd.DataFrame
 
     if column not in df.columns:
         df[TIMESTAMP_INTERNAL] = pd.NaT
+        df[DAY_INTERNAL] = pd.Series(pd.NA, index=df.index, dtype="string")
         info["format_used"] = "column_absent"
         return df, info
 
@@ -238,6 +239,9 @@ def build_targets(df: pd.DataFrame, settings: Settings) -> tuple[pd.DataFrame, d
 def clean_dataframe(df: pd.DataFrame, settings: Settings) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Type coercion, duplicate removal and obvious-noise handling."""
     report: dict[str, Any] = {}
+    # Some source exports repeat headers; retaining duplicate labels causes
+    # ambiguous feature selection and invalid model matrices.
+    df = df.loc[:, ~df.columns.duplicated(keep="first")].copy()
     label_col = settings.preprocess.label_column
     protected = {
         label_col, TARGET_COLUMN_DEFAULT, CATEGORY_COLUMN, TIMESTAMP_INTERNAL, DAY_INTERNAL,
@@ -483,10 +487,14 @@ class FeatureEncoder:
             work["dst_service"] = work["Destination Port"].map(port_to_service)
         self.derived_features = self._add_derived(work)
 
+        categoricals = self._candidate_categoricals(work)
+        for required in ("Protocol", "dst_service"):
+            if required in work.columns and required not in categoricals:
+                categoricals.append(required)
         self.numeric_columns = [
             c for c in work.columns
-            if c not in protected and not c.startswith("__") and c not in ("dst_service",)
-            and pd.api.types.is_numeric_dtype(work[c])
+            if c not in protected and c not in categoricals and not c.startswith("__")
+            and c not in ("dst_service",) and pd.api.types.is_numeric_dtype(work[c])
         ]
 
         missing_fraction = work[self.numeric_columns].isna().mean()
@@ -516,6 +524,9 @@ class FeatureEncoder:
                 self.clip_bounds[c] = (float(series.quantile(lo_q)), float(series.quantile(hi_q)))
 
         categoricals = self._candidate_categoricals(work)
+        for required in ("Protocol", "dst_service"):
+            if required in work.columns and required not in categoricals:
+                categoricals.append(required)
         self.categorical_vocab = {}
         for col in categoricals:
             values = work[col].astype(str).fillna("missing")
@@ -731,8 +742,10 @@ def run_preprocessing(
     test_features = encoder.transform(test)
 
     feature_columns = list(train_features.columns)
-    train = pd.concat([train, train_features], axis=1)
-    test = pd.concat([test, test_features], axis=1)
+    # Replace raw columns that share names with encoded features instead of
+    # concatenating duplicate labels into the model-ready frame.
+    train = pd.concat([train.drop(columns=feature_columns, errors="ignore"), train_features], axis=1)
+    test = pd.concat([test.drop(columns=feature_columns, errors="ignore"), test_features], axis=1)
 
     train["__split"] = "train"
     test["__split"] = "test"
