@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         print("=" * 78)
         print("EXPLAINABLE KNOWLEDGE GRAPH-BASED CYBER THREAT DETECTION")
         print("=" * 78)
-        print(f"raw data dir        : {settings.path('raw_dir')}")
+        print(f"raw data dir        : {(PROJECT_ROOT / settings.dataset.raw_dir).resolve()}")
         print(f"rows per file       : {settings.dataset.max_rows_per_file or 'all'}")
         print(f"split strategy      : {settings.preprocess.split_strategy}")
         print(f"graph scope         : {settings.graph.structural_scope}")
