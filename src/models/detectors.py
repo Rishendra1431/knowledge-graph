@@ -96,6 +96,10 @@ class ThreatDetector:
     # ------------------------------------------------------------------
     def fit(self, X: pd.DataFrame, y: np.ndarray) -> "ThreatDetector":
         X = self._select(X)
+        # Pandas can return duplicate columns when a feature name appears in both
+        # the tabular and derived feature lists; keep one deterministic copy so
+        # model metadata stays aligned with the fitted matrix.
+        self.feature_columns = list(X.columns)
         self.n_training_rows = int(len(X))
         start = time.perf_counter()
         self.model.fit(X.to_numpy(dtype="float64"), np.asarray(y).astype(int))
@@ -116,7 +120,8 @@ class ThreatDetector:
         missing = [c for c in self.feature_columns if c not in X.columns]
         if missing:
             raise KeyError(f"{self.name}: missing feature columns {missing[:8]}")
-        return X[self.feature_columns]
+        selected = X[self.feature_columns]
+        return selected.loc[:, ~selected.columns.duplicated(keep="first")]
 
     def predict_proba(self, X: pd.DataFrame, batch_size: int | None = None) -> PredictionResult:
         """Batched inference. Batching bounds the memory of a single call and

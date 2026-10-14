@@ -37,7 +37,32 @@ from src.graph.paths import (
 logger = get_logger("graph.features")
 
 # name -> (description, provenance, uses_training_labels)
-FEATURE_DESCRIPTIONS: dict[str, dict[str, Any]] = {
+class FeatureDescription(tuple):
+    """Tuple-compatible feature metadata with readable field access."""
+
+    __slots__ = ()
+
+    def __new__(cls, values: tuple[str, str, bool]) -> "FeatureDescription":
+        return super().__new__(cls, values)
+
+    def __getitem__(self, key: int | str) -> Any:
+        if isinstance(key, str):
+            return super().__getitem__({
+                "description": 0,
+                "source": 1,
+                "provenance": 1,
+                "uses_training_labels": 2,
+            }[key])
+        return super().__getitem__(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+
+_FEATURE_DESCRIPTION_VALUES: dict[str, tuple[str, str, bool]] = {
     "g_src_degree": ("Distinct IPs the source address communicated with in the graph scope", "structural_ip_graph", False),
     "g_dst_degree": ("Distinct IPs the destination address communicated with in the graph scope", "structural_ip_graph", False),
     "g_src_weighted_degree": ("Total observed flows involving the source address", "structural_ip_graph", False),
@@ -76,6 +101,10 @@ FEATURE_DESCRIPTIONS: dict[str, dict[str, Any]] = {
     "g_dst_neighbors_flagged": ("Number of direct neighbours of the destination address carrying intel evidence", "intel_index(train labels)", True),
     "g_src_hops_to_intel": ("Graph distance from the source address to the nearest intel-flagged IP (NaN if > max_hops)", "intel_index(train labels)", True),
     "g_dst_hops_to_intel": ("Graph distance from the destination address to the nearest intel-flagged IP", "intel_index(train labels)", True),
+}
+
+FEATURE_DESCRIPTIONS: dict[str, FeatureDescription] = {
+    name: FeatureDescription(values) for name, values in _FEATURE_DESCRIPTION_VALUES.items()
 }
 
 
@@ -134,8 +163,16 @@ class GraphFeatureExtractor:
         fanin = work.groupby("__dst")["__src"].nunique()
         src_events = work["__src"].value_counts()
         dst_events = work["__dst"].value_counts()
-        src_is_internal = work.drop_duplicates("__src").set_index("__src")["__src"].map(is_private_ip)
-        dst_is_internal = work.drop_duplicates("__dst").set_index("__dst")["__dst"].map(is_private_ip)
+        src_is_internal = pd.Series(
+            work["__src"].drop_duplicates().map(is_private_ip).to_numpy(),
+            index=pd.Index(work["__src"].drop_duplicates(), name="__src"),
+            dtype="float64",
+        )
+        dst_is_internal = pd.Series(
+            work["__dst"].drop_duplicates().map(is_private_ip).to_numpy(),
+            index=pd.Index(work["__dst"].drop_duplicates(), name="__dst"),
+            dtype="float64",
+        )
 
         port_diversity_src = port_diversity_dst = services_src = services_dst = protocol_div = None
         if dst_port_col is not None:
@@ -376,7 +413,7 @@ class GraphFeatureExtractor:
                 "entities": [address],
                 "hops": [{"position": 0, "entity": address, "is_internal": is_private_ip(address),
                           "intel": (self.intel_index.get("ips") or {}).get(address)}],
-                "interpretation": "The address itself carries training-derived threat-intel evidence.",
+                "interpretation": "The address itself carries training-derived threat-intel evidence; this is context, not proof of malicious intent.",
             }
         return describe_path(self.ip_graph, entry["path"], self.intel_index)
 

@@ -131,6 +131,7 @@ class AlertExplainer:
         """Per-row feature attributions for the rows in ``X``."""
         k = int(top_k or self.settings.explain.top_k_features)
         frame = X[self.detector.feature_columns]
+        frame = frame.loc[:, ~frame.columns.duplicated(keep="first")]
         if self.method == METHOD_SHAP and self._explainer is not None:
             try:
                 values = self._explainer.shap_values(frame.to_numpy(dtype="float64"))
@@ -286,6 +287,9 @@ class AlertExplainer:
         attributions: pd.Series,
         true_label: int | None = None,
     ) -> dict[str, Any]:
+        # Concatenated tabular and graph frames can contain repeated labels;
+        # explanations need a scalar value for each feature and entity lookup.
+        row = row[~row.index.duplicated(keep="first")]
         top_k = int(self.settings.explain.top_k_features)
         ranked = attributions.reindex(attributions.abs().sort_values(ascending=False).index).head(top_k)
 
@@ -293,6 +297,8 @@ class AlertExplainer:
         for name, value in ranked.items():
             documentation = FEATURE_DESCRIPTIONS.get(name, {})
             observed = row.get(name)
+            if isinstance(observed, pd.Series):
+                observed = observed.iloc[0]
             percentile = self._percentile_of(name, observed)
             contributing_features.append(
                 {
@@ -301,7 +307,7 @@ class AlertExplainer:
                     "attribution": round(float(value), 8),
                     "direction": "pushes toward attack" if value > 0 else "pushes toward benign",
                     "method": self.method,
-                    "description": documentation.get("description"),
+                    "description": documentation.get("description") or "Model input feature used in the detection decision.",
                     "feature_provenance": documentation.get("source"),
                     "uses_training_labels": documentation.get("uses_training_labels"),
                     "training_percentile": None if percentile is None else round(float(percentile), 4),
@@ -382,7 +388,7 @@ class AlertExplainer:
             "limitations": limitations,
             "analyst_explanation": explanation,
             "disclaimer": (
-                "This explanation does not prove malicious intent. It documents which observed features "
+                "This explanation does not prove malicious intent and is not proof of intent. It documents which observed features "
                 "and which recorded relationships the model used, and which data the model was trained on."
             ),
         }
