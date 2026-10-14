@@ -2,8 +2,7 @@
   "name": "knowledge-graph-threat-detection",
   "version": "1.0.0",
   "private": true,
-  "description": "Explainable knowledge graph-based cyber threat detection prototype",
-  "scripts": {
-    "build": "python -m compileall -q api app src scripts run_all.py"
-  }
+  "scripts": {"dev": "next dev", "build": "next build", "start": "next start -p 3000"},
+  "dependencies": {"next": "16.0.1", "react": "19.2.0", "react-dom": "19.2.0"},
+  "devDependencies": {"@types/node": "^22.0.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0", "typescript": "^5.0.0"}
 }
