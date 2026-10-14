@@ -66,7 +66,7 @@ def _mtime(path: Path) -> float:
 
 
 @st.cache_data(show_spinner=False)
-def load_json(path_str: str, _mtime: float) -> dict[str, Any] | list[Any] | None:
+def load_json(path_str: str, mtime: float) -> dict[str, Any] | list[Any] | None:
     path = Path(path_str)
     if not path.exists():
         return None
@@ -77,7 +77,7 @@ def load_json(path_str: str, _mtime: float) -> dict[str, Any] | list[Any] | None
 
 
 @st.cache_data(show_spinner=False)
-def load_csv(path_str: str, _mtime: float) -> pd.DataFrame | None:
+def load_csv(path_str: str, mtime: float) -> pd.DataFrame | None:
     path = Path(path_str)
     if not path.exists():
         return None
@@ -88,7 +88,7 @@ def load_csv(path_str: str, _mtime: float) -> pd.DataFrame | None:
 
 
 @st.cache_data(show_spinner=False)
-def load_npz(path_str: str, _mtime: float) -> dict[str, np.ndarray] | None:
+def load_npz(path_str: str, mtime: float) -> dict[str, np.ndarray] | None:
     path = Path(path_str)
     if not path.exists():
         return None

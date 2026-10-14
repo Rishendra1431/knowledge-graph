@@ -228,10 +228,7 @@ def validate_results(payload: dict[str, Any], tolerance: float = 1e-6) -> dict[s
 
 
 def finalize(payload: dict[str, Any]) -> dict[str, Any]:
-    """Validate, then set status/measured/metrics_published from the evidence."""
-    validation = validate_results(payload)
-    payload["validation"] = validation
-
+    """Set the evidence status, then validate and publish only consistent results."""
     models = payload.get("models") or {}
     measured_models = [n for n, b in models.items() if (b or {}).get("metrics_status") == STATUS_MEASURED]
     failed = payload.get("failed_stages") or []
@@ -243,6 +240,8 @@ def finalize(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         payload["status"] = STATUS_MEASURED
 
+    validation = validate_results(payload)
+    payload["validation"] = validation
     payload["measured"] = payload["status"] in (STATUS_MEASURED, STATUS_PARTIAL) and bool(measured_models)
     payload["metrics_published"] = payload["measured"] and validation["valid"] and bool(measured_models)
     payload["measured_models"] = measured_models

@@ -418,7 +418,7 @@ def run_pipeline(settings: Settings, mode: str = "full", write: bool = True) -> 
                 intel_index=intel_index,
                 dataset_name=provenance.name,
                 dataset_origin=provenance.origin,
-                feature_reference=train_frame[X_train_graph.columns],
+                feature_reference=X_train_graph,
             )
             n_explain = min(int(settings.explain.n_alerts), int((primary_predictions["graph_aware_rf"]["y_pred"] == 1).sum()))
             with ResourceMonitor("07_explanation_generation", settings, n_items=max(n_explain, 1)) as monitor:
