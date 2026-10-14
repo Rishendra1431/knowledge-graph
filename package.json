@@ -1,0 +1,9 @@
+{
+  "name": "knowledge-graph-threat-detection",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explainable knowledge graph-based cyber threat detection prototype",
+  "scripts": {
+    "build": "python -m compileall -q api app src scripts run_all.py"
+  }
+}
