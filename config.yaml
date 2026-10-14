@@ -20,7 +20,7 @@ dataset:
   # the pipeline is always runnable. Results are then flagged is_synthetic=true
   # and must NOT be presented as findings about real traffic.
   allow_synthetic_fallback: true
-  synthetic_rows: 60000
+  synthetic_rows: 10000
   # Optional download sources, tried in order when raw_dir is empty.
   download_urls: []
   download_timeout_seconds: 60
