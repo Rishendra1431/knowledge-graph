@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.config import Settings, get_logger
+from src.config import PROJECT_ROOT, Settings, get_logger
 
 logger = get_logger("data.acquire")
 
@@ -483,7 +483,7 @@ def _sample_endpoints(
 # Acquisition entry point
 # ---------------------------------------------------------------------------
 def find_raw_files(settings: Settings) -> list[Path]:
-    raw_dir = settings.path("raw_dir")
+    raw_dir = (PROJECT_ROOT / settings.dataset.raw_dir).resolve()
     if not raw_dir.exists():
         return []
     files = sorted(p for p in raw_dir.rglob("*.csv") if p.is_file())
@@ -495,7 +495,7 @@ def maybe_download(settings: Settings) -> list[Path]:
     if not settings.dataset.download_urls:
         logger.info("no dataset.download_urls configured; skipping download step")
         return []
-    raw_dir = settings.path("raw_dir")
+    raw_dir = (PROJECT_ROOT / settings.dataset.raw_dir).resolve()
     raw_dir.mkdir(parents=True, exist_ok=True)
     try:
         import requests
@@ -535,7 +535,7 @@ def acquire_dataset(settings: Settings) -> tuple[pd.DataFrame, DatasetProvenance
                 f"no CSV files found in {settings.path('raw_dir')} and "
                 "dataset.allow_synthetic_fallback is false. See docs/DATASET.md."
             )
-        logger.warning("no raw CSVs found in %s", settings.path("raw_dir"))
+        logger.warning("no raw CSVs found in %s", (PROJECT_ROOT / settings.dataset.raw_dir).resolve())
         return generate_synthetic_dataset(settings)
 
     frames: list[pd.DataFrame] = []
